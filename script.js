@@ -11,8 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         notices: [],
         gallery: [],
+        finance: { transactions: [] },
         logo: null
     };
+
+    // Migration for existing data
+    if (!db.finance) db.finance = { transactions: [] };
+    if (!db.finance.transactions) db.finance.transactions = [];
+    if (!db.society) db.society = { president: {}, secretary: {}, treasurer: {}, general: {} };
+    if (!db.society.general) db.society.general = {};
 
     // UI Elements
     const sections = document.querySelectorAll('.section');
@@ -80,10 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
             address: document.getElementById('f-address').value,
             telMain: document.getElementById('f-tel-main').value,
             telAlt: [
-                document.getElementById('f-tel-1').value,
-                document.getElementById('f-tel-2').value,
-                document.getElementById('f-tel-3').value
+                document.getElementById('f-tel-1').value
             ],
+            membershipFee: parseFloat(document.getElementById('f-membership-fee').value) || 120,
+            paidYears: document.getElementById('f-paid-years').value.split(',').map(y => y.trim()).filter(y => y),
             bank: {
                 name: document.getElementById('f-bank-name').value,
                 branch: document.getElementById('f-bank-branch').value,
@@ -117,6 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('p-name').value = '';
         document.getElementById('p-size').value = '';
         document.getElementById('p-variety').value = '';
+        document.getElementById('f-membership-fee').value = '120';
+        document.getElementById('f-paid-years').value = '';
         farmerSelect.value = '';
     }
 
@@ -171,8 +180,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('f-address').value = farmer.address;
         document.getElementById('f-tel-main').value = farmer.telMain;
         document.getElementById('f-tel-1').value = farmer.telAlt[0] || '';
-        document.getElementById('f-tel-2').value = farmer.telAlt[1] || '';
-        document.getElementById('f-tel-3').value = farmer.telAlt[2] || '';
+        document.getElementById('f-membership-fee').value = farmer.membershipFee || 120;
+        document.getElementById('f-paid-years').value = (farmer.paidYears || []).join(', ');
         document.getElementById('f-bank-name').value = farmer.bank.name;
         document.getElementById('f-bank-branch').value = farmer.bank.branch;
         document.getElementById('f-bank-acc').value = farmer.bank.acc;
@@ -274,10 +283,23 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (db.farmers.length === 0) return alert('පණිවිඩය යැවීමට ගොවීන් නොමැත');
         
+        // Open the first farmer's WA as a start, or suggest using the list
         const firstFarmer = db.farmers[0];
         const waLink = `https://wa.me/${firstFarmer.telMain.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
         window.open(waLink, '_blank');
-        alert(`${firstFarmer.name} සඳහා WhatsApp විවෘත විය. අනෙක් අයට ගොවි ලේඛනයෙන් ලබාගත හැක.`);
+        
+        // Also open for officers if requested
+        if (confirm('සමිතියේ නිලධාරීන්ටත් මෙම පණිවිඩය යැවීමට අවශ්‍යද?')) {
+            const officer = db.society.president;
+            if (officer && officer.tel) {
+                setTimeout(() => {
+                    const offLink = `https://wa.me/${officer.tel.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+                    window.open(offLink, '_blank');
+                }, 1000);
+            }
+        }
+
+        alert(`පණිවිඩය යැවීම ආරම්භ විය. වගුවේ ඇති WhatsApp බොත්තම් මගින් අනෙක් අයටද යැවිය හැක.`);
     });
 
     document.getElementById('send-officers-wa').addEventListener('click', () => {
@@ -298,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Photo Gallery Logic
-    document.getElementById('upload-gal-btn').addEventListener('click', () => {
+    document.getElementById('upload-gal-btn')?.addEventListener('click', () => {
         const photoFile = document.getElementById('gal-photo').files[0];
         const eventName = document.getElementById('gal-event').value;
         const eventDate = document.getElementById('gal-date').value;
@@ -317,6 +339,78 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         reader.readAsDataURL(photoFile);
     });
+
+    // Finance Logic
+    document.getElementById('add-income-btn')?.addEventListener('click', () => {
+        const source = document.getElementById('inc-source').value;
+        const amount = parseFloat(document.getElementById('inc-amount').value);
+        const date = document.getElementById('inc-date').value || new Date().toISOString().split('T')[0];
+
+        if (!amount) return alert('කරුණාකර මුදල ඇතුළත් කරන්න');
+
+        db.finance.transactions.unshift({
+            id: Date.now(),
+            type: 'income',
+            category: source,
+            amount: amount,
+            date: date,
+            desc: `ආදායම: ${source}`
+        });
+
+        saveData();
+        renderData();
+        document.getElementById('inc-amount').value = '';
+    });
+
+    document.getElementById('add-expense-btn')?.addEventListener('click', () => {
+        const category = document.getElementById('exp-category').value;
+        const amount = parseFloat(document.getElementById('exp-amount').value);
+        const date = document.getElementById('exp-date').value || new Date().toISOString().split('T')[0];
+
+        if (!amount) return alert('කරුණාකර මුදල ඇතුළත් කරන්න');
+
+        db.finance.transactions.unshift({
+            id: Date.now(),
+            type: 'expense',
+            category: category,
+            amount: amount,
+            date: date,
+            desc: `වියදම: ${category}`
+        });
+
+        saveData();
+        renderData();
+        document.getElementById('exp-amount').value = '';
+    });
+
+    window.removeTransaction = (id) => {
+        if (!confirm('මෙම ගනුදෙනුව ඉවත් කිරීමට අවශ්‍ය බව සහතිකද?')) return;
+        db.finance.transactions = db.finance.transactions.filter(t => t.id !== id);
+        saveData();
+        renderData();
+    };
+
+    function calculateArrears(farmer) {
+        const currentYear = new Date().getFullYear();
+        const startYear = 2022;
+        const fee = farmer.membershipFee || 120;
+        const paidYears = (farmer.paidYears || []).map(y => parseInt(y));
+        
+        let unpaidYears = [];
+        let totalArrears = 0;
+        
+        for (let y = startYear; y <= currentYear; y++) {
+            if (!paidYears.includes(y)) {
+                unpaidYears.push(y);
+                totalArrears += fee;
+            }
+        }
+        
+        return {
+            unpaid: unpaidYears,
+            total: totalArrears
+        };
+    }
 
     // Data Management
     function saveData() {
@@ -348,11 +442,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Render Summary Table
         summaryList.innerHTML = '';
         db.farmers.forEach(f => {
-            const paddy = db.paddy_fields.find(p => p.farmerId == f.id) || { name: 'N/A' };
+            const paddy = db.paddy_fields.find(p => p.farmerId == f.id) || { name: 'නැත' };
+            const arrearsInfo = calculateArrears(f);
+            const arrearsText = arrearsInfo.total > 0 
+                ? `<span style="color:#c62828; font-weight:bold;">Rs. ${arrearsInfo.total} (${arrearsInfo.unpaid.join(', ')})</span>`
+                : `<span style="color:#2e7d32; font-weight:bold;">ගෙවා ඇත</span>`;
+
             const row = `
                 <tr>
-                    <td>${f.name}</td>
+                    <td>
+                        ${f.name}
+                        ${arrearsInfo.total > 0 ? '<i class="fas fa-exclamation-circle" style="color:#f44336; margin-left:5px;" title="හිඟ මුදල් ඇත"></i>' : '<i class="fas fa-check-circle" style="color:#4caf50; margin-left:5px;"></i>'}
+                    </td>
                     <td>${paddy.name}</td>
+                    <td>${arrearsText}</td>
                     <td>${f.telMain}</td>
                     <td>
                         <button onclick="loadFarmer(${f.id})" style="background:none;border:none;color:var(--primary-color);cursor:pointer;margin-right:10px;"><i class="fas fa-edit"></i></button>
@@ -363,6 +466,70 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             summaryList.insertAdjacentHTML('beforeend', row);
         });
+
+        // Render Officers Summary on Home Page
+        const offSummary = document.getElementById('officers-summary');
+        if (offSummary && db.society) {
+            const officers = [
+                { role: 'සභාපති', ...db.society.president },
+                { role: 'ලේකම්', ...db.society.secretary },
+                { role: 'භාණ්ඩාගාරික', ...db.society.treasurer }
+            ];
+            offSummary.innerHTML = officers.map(o => `
+                <div class="officer-item">
+                    <div class="officer-info">
+                        <b>${o.role}:</b> ${o.name || '---'}<br>
+                        <span><i class="fas fa-phone"></i> ${o.tel || '---'}</span>
+                    </div>
+                    ${o.tel ? `<a href="https://wa.me/${o.tel.replace(/\D/g, '')}" class="btn-whatsapp" target="_blank" style="padding: 8px 12px;"><i class="fab fa-whatsapp"></i></a>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Render Finance Section
+        if (db.finance) {
+            const financeList = document.getElementById('finance-list');
+            if (financeList) {
+                financeList.innerHTML = '';
+                let totalInc = 0;
+                let totalExp = 0;
+
+                // Sync Membership Income from Farmers
+                let membershipTotal = 0;
+                db.farmers.forEach(f => {
+                    const paidCount = (f.paidYears || []).length;
+                    membershipTotal += paidCount * (f.membershipFee || 120);
+                });
+
+                db.finance.transactions.forEach(t => {
+                    if (t.type === 'income') totalInc += t.amount;
+                    else totalExp += t.amount;
+
+                    const row = `
+                        <tr>
+                            <td>${t.date}</td>
+                            <td>${t.desc}</td>
+                            <td>${t.type === 'income' ? 'ආදායම' : 'වියදම'}</td>
+                            <td style="color: ${t.type === 'income' ? '#2e7d32' : '#c62828'}; font-weight:bold;">
+                                ${t.type === 'income' ? '+' : '-'} Rs. ${t.amount.toFixed(2)}
+                            </td>
+                            <td>
+                                <button onclick="removeTransaction(${t.id})" style="background:none;border:none;color:red;cursor:pointer;"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    financeList.insertAdjacentHTML('beforeend', row);
+                });
+
+                // Add Membership income to summary (not as a separate transaction for now to avoid duplicates, but can be done)
+                // Actually it's better to show it in the summary totals
+                const combinedIncome = totalInc + membershipTotal;
+                
+                document.getElementById('total-income').innerText = `Rs. ${combinedIncome.toFixed(2)}`;
+                document.getElementById('total-expense').innerText = `Rs. ${totalExp.toFixed(2)}`;
+                document.getElementById('current-balance').innerText = `Rs. ${(combinedIncome - totalExp).toFixed(2)}`;
+            }
+        }
 
         // Update Paddy Select
         farmerSelect.innerHTML = '<option value="">ගොවියෙකු තෝරන්න</option>';

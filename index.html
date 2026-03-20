@@ -41,11 +41,18 @@
       <button class="nav-btn" data-section="society"><i class="fas fa-handshake"></i> නිලධාරීන් සහ සමිතිය</button>
       <button class="nav-btn" data-section="notices"><i class="fas fa-bullhorn"></i> නිවේදන පුවරුව</button>
       <button class="nav-btn" data-section="gallery"><i class="fas fa-images"></i> ඡායාරූප ගැලරිය</button>
+      <button class="nav-btn" data-section="finance"><i class="fas fa-file-invoice-dollar"></i> මුදල් කළමනාකරණය</button>
       <button id="save-all-btn" class="btn-primary save-nav-btn"><i class="fas fa-save"></i> සියල්ල සුරකින්න</button>
     </nav>
 
     <!-- Home Section -->
     <section id="home" class="section active">
+      <div class="hero-section">
+        <img src="paddy_field.png" alt="Paddy Field" class="hero-img">
+        <div class="hero-overlay">
+          <h2>ගොවිසෙත - සාර්ථක අස්වැන්නක මග</h2>
+        </div>
+      </div>
       <div class="card">
         <h2>පොදු තොරතුරු</h2>
         <div class="form-grid info-highlight-grid">
@@ -58,9 +65,15 @@
             <input type="text" id="officer-name" class="color-input" placeholder="නිලධාරියාගේ නම ඇතුළත් කරන්න">
           </div>
           <div class="form-group highlight-box owner-box">
-            <label class="color-label">අයිතිකරුගේ නම (Ayithikaruge Nama)</label>
-            <input type="text" id="owner-name" class="color-input" placeholder="අයිතිකරුගේ නම ඇතුළත් කරන්න">
+            <label class="color-label">ප්‍රාදේශීය නිලධාරීගේ නම (Regional Officer)</label>
+            <input type="text" id="owner-name" class="color-input" placeholder="නිලධාරියාගේ නම ඇතුළත් කරන්න">
           </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2><i class="fas fa-user-shield"></i> සමිතියේ නිලධාරීන්</h2>
+        <div id="officers-summary" class="form-grid">
+           <!-- Officers will be listed here with WhatsApp -->
         </div>
       </div>
       <div class="card">
@@ -70,6 +83,7 @@
             <tr>
               <th>ගොවියාගේ නම</th>
               <th>කුඹුරු ඉඩම</th>
+              <th>හිඟ මුදල (Arrears)</th>
               <th>WhatsApp/දුරකථන</th>
               <th>ක්‍රියාව</th>
             </tr>
@@ -123,12 +137,12 @@
               <input type="tel" id="f-tel-1" placeholder="ඇත්නම් පමණක්">
             </div>
             <div class="form-group">
-              <label>විකල්ප දුරකථන අංක 2</label>
-              <input type="tel" id="f-tel-2" placeholder="ඇත්නම් පමණක්">
+              <label>වාර්ෂික සමාජික ගාස්තුව (Rs.)</label>
+              <input type="number" id="f-membership-fee" value="120" placeholder="උදා: 120">
             </div>
-            <div class="form-group">
-              <label>විකල්ප දුරකථන අංක 3</label>
-              <input type="tel" id="f-tel-3" placeholder="ඇත්නම් පමණක්">
+            <div class="form-group" style="grid-column: span 2;">
+              <label>ගෙවූ වසරවල් (කොමා මගින් වෙන් කරන්න)</label>
+              <input type="text" id="f-paid-years" placeholder="උදා: 2022, 2023, 2024">
             </div>
             <div class="form-group" style="grid-column: span 1;">
               <label>බැංකුවේ නම</label>
@@ -252,6 +266,100 @@
       </div>
       <div class="gallery-grid" id="gallery-container">
         <!-- Gallery items here -->
+      </div>
+    </section>
+
+    <!-- Finance Section -->
+    <section id="finance" class="section">
+      <div class="card">
+        <h2><i class="fas fa-hand-holding-usd"></i> ආදායම් සහ වියදම් කළමනාකරණය</h2>
+        <div class="form-grid">
+          <div class="card" style="padding: 20px; border: 1px solid #e1e1e1;">
+            <h3>ආදායම එක් කරන්න</h3>
+            <div class="form-group">
+              <label>මූලාශ්‍රය</label>
+              <select id="inc-source">
+                <option value="Fuel Tank">තෙල් ටැංකියෙන් ලැබෙන මුදල</option>
+                <option value="Contract">කොන්ත්‍රාත් වලින් ලැබෙන මුදල</option>
+                <option value="Membership">සමාජික මුදල්</option>
+                <option value="Interest">බැංකු පොලිය</option>
+                <option value="Other">වෙනත්</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>මුදල (Rs.)</label>
+              <input type="number" id="inc-amount" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>දිනය</label>
+              <input type="date" id="inc-date">
+            </div>
+            <button id="add-income-btn" class="btn-primary" style="margin-top: 10px; width: 100%;"><i class="fas fa-plus"></i> ආදායම සුරකින්න</button>
+          </div>
+
+          <div class="card" style="padding: 20px; border: 1px solid #e1e1e1;">
+            <h3>වියදම එක් කරන්න</h3>
+            <div class="form-group">
+              <label>වර්ගය</label>
+              <select id="exp-category">
+                <option value="Stationery">ලිපි ද්‍රව්‍ය (Stationery)</option>
+                <option value="Books">පොත් (Books)</option>
+                <option value="Pens">පෑන් (Pens)</option>
+                <option value="Meetings">කන්න රැස්වීම් (Kanna resweem)</option>
+                <option value="Pahanmadu">පහන්මඩු</option>
+                <option value="Festival">අලුත් සහල් මංගල්‍යය</option>
+                <option value="Donations">ආධාර/වෙනත් වියදම්</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>මුදල (Rs.)</label>
+              <input type="number" id="exp-amount" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>දිනය</label>
+              <input type="date" id="exp-date">
+            </div>
+            <button id="add-expense-btn" class="btn-primary" style="margin-top: 10px; width: 100%; background: #c62828;"><i class="fas fa-plus"></i> වියදම සුරකින්න</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><i class="fas fa-chart-line"></i> මූල්‍ය සාරාංශය (2022 සිට)</h2>
+        <div class="form-grid" style="margin-bottom: 20px;">
+          <div class="highlight-box area-box" style="text-align: center;">
+            <label>මුළු ආදායම</label>
+            <div id="total-income" style="font-size: 1.5rem; font-weight: 800; color: #2e7d32;">Rs. 0.00</div>
+          </div>
+          <div class="highlight-box owner-box" style="text-align: center; border-color: #ef9a9a !important; background: #ffebee !important;">
+            <label style="color: #c62828 !important;">මුළු වියදම</label>
+            <div id="total-expense" style="font-size: 1.5rem; font-weight: 800; color: #c62828;">Rs. 0.00</div>
+          </div>
+          <div class="highlight-box officer-box" style="text-align: center;">
+            <label>වර්තමාන ශේෂය</label>
+            <div id="current-balance" style="font-size: 1.5rem; font-weight: 800; color: #1565c0;">Rs. 0.00</div>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 300px;">
+            <h3>මෑතකාලීන ගනුදෙනු</h3>
+            <table id="finance-table">
+              <thead>
+                <tr>
+                  <th>දිනය</th>
+                  <th>විස්තරය</th>
+                  <th>වර්ගය</th>
+                  <th>මුදල</th>
+                  <th>ක්‍රියාව</th>
+                </tr>
+              </thead>
+              <tbody id="finance-list">
+                <!-- Transactions will be added here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
   </div>
