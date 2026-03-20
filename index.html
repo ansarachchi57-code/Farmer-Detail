@@ -18,6 +18,26 @@
   </style>
 </head>
 <body>
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2><i class="fas fa-lock"></i> පද්ධතියට ඇතුළු වන්න</h2>
+      <div class="form-group" style="text-align: left;">
+        <label>ඔබගේ තනතුර තෝරන්න (Select Role)</label>
+        <select id="role-select" class="login-input">
+          <option value="viewer">නරඹන්නා (Viewer Only)</option>
+          <option value="treasurer">භාණ්ඩාගාරික (Treasurer)</option>
+          <option value="admin">ප්‍රධාන පරිපාලක (Admin / President)</option>
+        </select>
+      </div>
+      <div class="form-group" id="password-group" style="display: none; text-align: left; margin-top: 15px;">
+        <label>මුරපදය (Password)</label>
+        <input type="password" id="login-password" class="login-input" placeholder="මුරපදය ඇතුළත් කරන්න">
+      </div>
+      <button id="login-btn" class="btn-primary" style="width: 100%; margin-top: 20px;"><i class="fas fa-sign-in-alt"></i> ඇතුළු වන්න</button>
+    </div>
+  </div>
+
   <div class="container">
     <header>
       <div class="logo-section">
@@ -30,7 +50,8 @@
           <p>ශ්‍රී ලංකා ගොවිජන සංවර්ධන ද්වාරය</p>
         </div>
       </div>
-      <div class="header-right" id="header-action-area">
+      <div class="header-right" id="header-action-area" style="display: flex; gap: 10px; align-items: center;">
+        <button id="logout-btn" class="btn-primary" style="background: #e53935; display: none; padding: 10px 15px; font-size: 0.9rem;"><i class="fas fa-sign-out-alt"></i></button>
       </div>
     </header>
 
@@ -42,7 +63,7 @@
       <button class="nav-btn" data-section="notices"><i class="fas fa-bullhorn"></i> නිවේදන පුවරුව</button>
       <button class="nav-btn" data-section="gallery"><i class="fas fa-images"></i> ඡායාරූප ගැලරිය</button>
       <button class="nav-btn" data-section="finance"><i class="fas fa-file-invoice-dollar"></i> මුදල් කළමනාකරණය</button>
-      <button id="save-all-btn" class="btn-primary save-nav-btn"><i class="fas fa-save"></i> සියල්ල සුරකින්න</button>
+      <button id="save-all-btn" class="btn-primary save-nav-btn admin-only"><i class="fas fa-save"></i> සියල්ල සුරකින්න</button>
     </nav>
 
     <!-- Home Section -->
@@ -85,7 +106,7 @@
               <th>කුඹුරු ඉඩම</th>
               <th>හිඟ මුදල (Arrears)</th>
               <th>WhatsApp/දුරකථන</th>
-              <th>ක්‍රියාව</th>
+              <th class="action-col admin-only">ක්‍රියාව</th>
             </tr>
           </thead>
           <tbody id="summary-list">
@@ -107,7 +128,7 @@
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card admin-only">
         <h2 id="form-title">ගොවි විස්තර පෝරමය</h2>
         <form id="farmer-form">
           <input type="hidden" id="f-id">
@@ -169,7 +190,7 @@
 
     <!-- Paddy Fields Section -->
     <section id="paddy" class="section">
-      <div class="card">
+      <div class="card admin-only">
         <h2>කුඹුරු ඉඩම් තොරතුරු</h2>
         <div class="form-grid">
            <div class="form-group">
@@ -224,7 +245,7 @@
 
     <!-- Notices Section -->
     <section id="notices" class="section">
-      <div class="card">
+      <div class="card admin-only">
         <h2>නිවේදනයක් නිර්මාණය කරන්න (Denweem Puwaruwa)</h2>
         <div class="form-group">
           <label>පණිවිඩය</label>
@@ -246,7 +267,7 @@
 
     <!-- Gallery Section -->
     <section id="gallery" class="section">
-      <div class="card">
+      <div class="card admin-only">
         <h2>ඡායාරූප ගැලරිය (සමරු ඡායාරූප)</h2>
         <div class="form-grid">
           <div class="form-group">
@@ -271,7 +292,7 @@
 
     <!-- Finance Section -->
     <section id="finance" class="section">
-      <div class="card">
+      <div class="card finance-only">
         <h2><i class="fas fa-hand-holding-usd"></i> ආදායම් සහ වියදම් කළමනාකරණය</h2>
         <div class="form-grid">
           <div class="card" style="padding: 20px; border: 1px solid #e1e1e1;">
@@ -351,7 +372,7 @@
                   <th>විස්තරය</th>
                   <th>වර්ගය</th>
                   <th>මුදල</th>
-                  <th>ක්‍රියාව</th>
+                  <th class="finance-action-col finance-only">ක්‍රියාව</th>
                 </tr>
               </thead>
               <tbody id="finance-list">

@@ -61,6 +61,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const formTitle = document.getElementById('form-title');
     const farmerSubmitBtn = document.getElementById('farmer-submit-btn');
     const clearFormBtn = document.getElementById('clear-form-btn');
+    
+    // Auth & Access Control Logic
+    const loginModal = document.getElementById('login-modal');
+    const roleSelect = document.getElementById('role-select');
+    const passwordGroup = document.getElementById('password-group');
+    const loginPassword = document.getElementById('login-password');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    roleSelect.addEventListener('change', () => {
+        if (roleSelect.value === 'viewer') {
+            passwordGroup.style.display = 'none';
+        } else {
+            passwordGroup.style.display = 'block';
+        }
+    });
+
+    loginBtn.addEventListener('click', () => {
+        const role = roleSelect.value;
+        const pwd = loginPassword.value;
+        
+        if (role === 'admin' && pwd !== 'admin') {
+            return alert('මුරපදය වැරදියි (Incorrect Password for Admin)');
+        }
+        if (role === 'treasurer' && pwd !== '1234') {
+            return alert('මුරපදය වැරදියි (Incorrect Password for Treasurer)');
+        }
+        
+        sessionStorage.setItem('userRole', role);
+        loginModal.style.display = 'none';
+        loginPassword.value = '';
+        renderData();
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('userRole');
+        loginModal.style.display = 'flex';
+        logoutBtn.style.display = 'none';
+    });
+
+    function applyRoles() {
+        const role = sessionStorage.getItem('userRole');
+        if (!role) {
+            loginModal.style.display = 'flex';
+            logoutBtn.style.display = 'none';
+            return;
+        }
+
+        logoutBtn.style.display = 'block';
+        const isAdmin = role === 'admin';
+        const isTreasurer = role === 'treasurer';
+
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
+        document.querySelectorAll('.finance-only').forEach(el => el.style.display = (isAdmin || isTreasurer) ? '' : 'none');
+
+        const adminInputs = ['area-input', 'officer-name', 'owner-name', 'soc-pres-name', 'soc-pres-tel', 'soc-sec-name', 'soc-sec-tel', 'soc-tre-name', 'soc-tre-tel'];
+        adminInputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.readOnly = !isAdmin;
+        });
+
+        if (logoUpload) logoUpload.disabled = !isAdmin;
+        if (headerTitle) headerTitle.contentEditable = isAdmin;
+    }
 
     // Section Switching
     navBtns.forEach(btn => {
@@ -484,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${paddy.name}</td>
                     <td>${arrearsText}</td>
                     <td>${f.telMain}</td>
-                    <td>
+                    <td class="action-cell admin-only">
                         <button onclick="loadFarmer(${f.id})" style="background:none;border:none;color:var(--primary-color);cursor:pointer;margin-right:10px;"><i class="fas fa-edit"></i></button>
                         <a href="https://wa.me/${f.telMain.replace(/\D/g, '')}" class="btn-whatsapp" target="_blank" style="padding: 5px 10px;"><i class="fab fa-whatsapp"></i></a>
                         <button onclick="removeFarmer(${f.id})" style="background:none;border:none;color:red;cursor:pointer;margin-left:10px;"><i class="fas fa-trash"></i></button>
@@ -506,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tr style="background: #f1f8e9; font-weight: bold; border-top: 2px solid var(--primary-color);">
                     <td colspan="2" style="text-align: right;">මුළු හිඟ මුදල (Grand Total):</td>
                     <td style="color: #c62828;">Rs. ${grandTotalArrears.toFixed(2)}</td>
-                    <td colspan="2"></td>
+                    <td colspan="2" class="action-cell admin-only"></td>
                 </tr>
             `;
             summaryList.insertAdjacentHTML('beforeend', totalRow);
@@ -560,7 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td style="color: ${t.type === 'income' ? '#2e7d32' : '#c62828'}; font-weight:bold;">
                                 ${t.type === 'income' ? '+' : '-'} Rs. ${amt.toFixed(2)}
                             </td>
-                            <td>
+                            <td class="finance-action-cell finance-only">
                                 <button onclick="removeTransaction(${t.id})" style="background:none;border:none;color:red;cursor:pointer;"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>
@@ -576,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td>සමාජික මුදල් (සාමාජිකයින්ගෙන් ලබාගත්)</td>
                             <td>ආදායම</td>
                             <td style="color: #2e7d32; font-weight:bold;">+ Rs. ${membershipTotal.toFixed(2)}</td>
-                            <td><i class="fas fa-info-circle" title="මෙය ගොවි විස්තර වලින් ස්වයංක්‍රීයව ගණනය වේ"></i></td>
+                            <td class="finance-action-cell finance-only"><i class="fas fa-info-circle" title="මෙය ගොවි විස්තර වලින් ස්වයංක්‍රීයව ගණනය වේ"></i></td>
                         </tr>
                     `;
                     financeList.insertAdjacentHTML('afterbegin', row);
@@ -596,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td style="color: ${(combinedIncome - totalExp) >= 0 ? '#2e7d32' : '#c62828'}; transition: all 0.3s;">
                                 Rs. ${(combinedIncome - totalExp).toFixed(2)}
                             </td>
-                            <td></td>
+                            <td class="finance-action-cell finance-only"></td>
                         </tr>
                     `;
                     financeList.insertAdjacentHTML('beforeend', row);
@@ -627,7 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
         db.gallery.forEach((g, index) => {
             const item = `
                 <div class="gallery-item">
-                    <button class="delete-gal-btn" onclick="removeGalleryItem(${index})"><i class="fas fa-trash"></i></button>
+                    <button class="delete-gal-btn admin-only" onclick="removeGalleryItem(${index})"><i class="fas fa-trash"></i></button>
                     <img src="${g.image}" alt="Event Photo">
                     <div class="gallery-info">
                         <strong>${g.name}</strong><br>
@@ -637,6 +701,9 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             galleryContainer.insertAdjacentHTML('beforeend', item);
         });
+
+        // Ensure roles are strictly enforced at the end of rendering
+        applyRoles();
     }
 
     window.removeGalleryItem = (index) => {
