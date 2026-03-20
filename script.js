@@ -1,6 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Data Storage Logic
-    const saveData = () => { localStorage.setItem('farmer_db', JSON.stringify(db)); };
+    const saveData = () => {
+        try {
+            localStorage.setItem('farmer_db', JSON.stringify(db));
+        } catch (e) {
+            console.error("Storage failed:", e);
+            if (e.name === 'QuotaExceededError') {
+                alert("දෝෂයකි: ඔබගේ බ්‍රවුසරයේ මතකය පිරී ඇත (Storage Full). කරුණාකර ඡායාරූප කිහිපයක් ඉවත් කරන්න.");
+            }
+        }
+    };
 
     let db;
     try {
@@ -559,6 +568,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     financeList.insertAdjacentHTML('beforeend', row);
                 });
 
+                // Add System Row for Membership to sync table with boxes
+                if (membershipTotal > 0) {
+                    const row = `
+                        <tr style="background: #f1f8e9; border-left: 5px solid #2e7d32;">
+                            <td>-</td>
+                            <td>සමාජික මුදල් (සාමාජිකයින්ගෙන් ලබාගත්)</td>
+                            <td>ආදායම</td>
+                            <td style="color: #2e7d32; font-weight:bold;">+ Rs. ${membershipTotal.toFixed(2)}</td>
+                            <td><i class="fas fa-info-circle" title="මෙය ගොවි විස්තර වලින් ස්වයංක්‍රීයව ගණනය වේ"></i></td>
+                        </tr>
+                    `;
+                    financeList.insertAdjacentHTML('afterbegin', row);
+                }
+
                 const combinedIncome = totalInc + membershipTotal;
                 
                 document.getElementById('total-income').innerText = `Rs. ${combinedIncome.toFixed(2)}`;
@@ -566,12 +589,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('current-balance').innerText = `Rs. ${(combinedIncome - totalExp).toFixed(2)}`;
 
                 // Add Table Total Row
-                if (db.finance.transactions.length > 0) {
+                if (db.finance.transactions.length > 0 || membershipTotal > 0) {
                     const row = `
                         <tr style="background: #f8fcf8; font-weight: bold; border-top: 2px solid #2e7d32;">
-                            <td colspan="3" style="text-align: right;">ගනුදෙනු එකතුව (Transactions Total):</td>
-                            <td style="color: ${totalInc >= totalExp ? '#2e7d32' : '#c62828'};">
-                                Rs. ${(totalInc - totalExp).toFixed(2)}
+                            <td colspan="3" style="text-align: right;">සම්පූර්ණ ශේෂය (Overall Balance):</td>
+                            <td style="color: ${(combinedIncome - totalExp) >= 0 ? '#2e7d32' : '#c62828'}; transition: all 0.3s;">
+                                Rs. ${(combinedIncome - totalExp).toFixed(2)}
                             </td>
                             <td></td>
                         </tr>

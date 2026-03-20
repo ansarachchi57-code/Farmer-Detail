@@ -1,4 +1,4 @@
-const CACHE_NAME = 'farmer-details-v3';
+const CACHE_NAME = 'farmer-details-v4';
 const ASSETS = [
   './index.html',
   './style.css',
