@@ -1,25 +1,22 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Data Storage
-    let db = JSON.parse(localStorage.getItem('farmer_db')) || {
-        farmers: [],
-        paddy_fields: [],
-        society: {
-            president: { name: '', tel: '' },
-            secretary: { name: '', tel: '' },
-            treasurer: { name: '', tel: '' },
-            general: { area: '', officer: '', owner: '' }
-        },
-        notices: [],
-        gallery: [],
-        finance: { transactions: [] },
-        logo: null
-    };
+    // Data Storage with Migration
+    let db;
+    try {
+        const raw = localStorage.getItem('farmer_db');
+        db = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        db = {};
+    }
 
-    // Migration for existing data
-    if (!db.finance) db.finance = { transactions: [] };
-    if (!db.finance.transactions) db.finance.transactions = [];
-    if (!db.society) db.society = { president: {}, secretary: {}, treasurer: {}, general: {} };
+    // Initialize defaults to prevent errors
+    db.farmers = db.farmers || [];
+    db.paddy_fields = db.paddy_fields || [];
+    db.society = db.society || { president: {}, secretary: {}, treasurer: {}, general: {} };
     if (!db.society.general) db.society.general = {};
+    db.notices = db.notices || [];
+    db.gallery = db.gallery || [];
+    db.finance = db.finance || { transactions: [] };
+    if (!db.finance.transactions) db.finance.transactions = [];
+    db.logo = db.logo || null;
 
     // UI Elements
     const sections = document.querySelectorAll('.section');
@@ -283,12 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (db.farmers.length === 0) return alert('පණිවිඩය යැවීමට ගොවීන් නොමැත');
         
-        // Open the first farmer's WA as a start, or suggest using the list
         const firstFarmer = db.farmers[0];
         const waLink = `https://wa.me/${firstFarmer.telMain.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
         window.open(waLink, '_blank');
         
-        // Also open for officers if requested
         if (confirm('සමිතියේ නිලධාරීන්ටත් මෙම පණිවිඩය යැවීමට අවශ්‍යද?')) {
             const officer = db.society.president;
             if (officer && officer.tel) {
@@ -298,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 1000);
             }
         }
-
         alert(`පණිවිඩය යැවීම ආරම්භ විය. වගුවේ ඇති WhatsApp බොත්තම් මගින් අනෙක් අයටද යැවිය හැක.`);
     });
 
@@ -343,10 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Finance Logic
     document.getElementById('add-income-btn')?.addEventListener('click', () => {
         const source = document.getElementById('inc-source').value;
-        const amount = parseFloat(document.getElementById('inc-amount').value);
+        const amountVal = document.getElementById('inc-amount').value;
+        const amount = parseFloat(amountVal);
         const date = document.getElementById('inc-date').value || new Date().toISOString().split('T')[0];
 
-        if (!amount) return alert('කරුණාකර මුදල ඇතුළත් කරන්න');
+        if (isNaN(amount) || amount <= 0) return alert('කරුණාකර වලංගු මුදලක් ඇතුළත් කරන්න');
 
         db.finance.transactions.unshift({
             id: Date.now(),
@@ -360,14 +355,16 @@ document.addEventListener('DOMContentLoaded', () => {
         saveData();
         renderData();
         document.getElementById('inc-amount').value = '';
+        alert('ආදායම සාර්ථකව සුරැකින ලදී!');
     });
 
     document.getElementById('add-expense-btn')?.addEventListener('click', () => {
         const category = document.getElementById('exp-category').value;
-        const amount = parseFloat(document.getElementById('exp-amount').value);
+        const amountVal = document.getElementById('exp-amount').value;
+        const amount = parseFloat(amountVal);
         const date = document.getElementById('exp-date').value || new Date().toISOString().split('T')[0];
 
-        if (!amount) return alert('කරුණාකර මුදල ඇතුළත් කරන්න');
+        if (isNaN(amount) || amount <= 0) return alert('කරුණාකර වලංගු මුදලක් ඇතුළත් කරන්න');
 
         db.finance.transactions.unshift({
             id: Date.now(),
@@ -381,6 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveData();
         renderData();
         document.getElementById('exp-amount').value = '';
+        alert('වියදම සාර්ථකව සුරැකින ලදී!');
     });
 
     window.removeTransaction = (id) => {
@@ -502,8 +500,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 db.finance.transactions.forEach(t => {
-                    if (t.type === 'income') totalInc += t.amount;
-                    else totalExp += t.amount;
+                    const amt = parseFloat(t.amount) || 0;
+                    if (t.type === 'income') totalInc += amt;
+                    else totalExp += amt;
 
                     const row = `
                         <tr>
@@ -511,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td>${t.desc}</td>
                             <td>${t.type === 'income' ? 'ආදායම' : 'වියදම'}</td>
                             <td style="color: ${t.type === 'income' ? '#2e7d32' : '#c62828'}; font-weight:bold;">
-                                ${t.type === 'income' ? '+' : '-'} Rs. ${t.amount.toFixed(2)}
+                                ${t.type === 'income' ? '+' : '-'} Rs. ${amt.toFixed(2)}
                             </td>
                             <td>
                                 <button onclick="removeTransaction(${t.id})" style="background:none;border:none;color:red;cursor:pointer;"><i class="fas fa-trash"></i></button>
@@ -521,8 +520,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     financeList.insertAdjacentHTML('beforeend', row);
                 });
 
-                // Add Membership income to summary (not as a separate transaction for now to avoid duplicates, but can be done)
-                // Actually it's better to show it in the summary totals
                 const combinedIncome = totalInc + membershipTotal;
                 
                 document.getElementById('total-income').innerText = `Rs. ${combinedIncome.toFixed(2)}`;
