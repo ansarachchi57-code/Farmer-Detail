@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     db.farmers = db.farmers || [];
     db.paddy_fields = db.paddy_fields || [];
     db.society = db.society || { president: {}, secretary: {}, treasurer: {}, general: {} };
-    if (!db.society.general) db.society.general = {};
+    if (db.society && !db.society.general) db.society.general = {};
     db.notices = db.notices || [];
     db.gallery = db.gallery || [];
     db.finance = db.finance || { transactions: [] };
@@ -312,88 +312,98 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('send-officers-wa').addEventListener('click', () => {
         const msg = document.getElementById('notice-msg').value;
-        if (!msg) return alert('ප්‍රථමයෙන් පණිවිඩයක් ලියන්න');
+        if (!msg) return alert('ප්‍රථමයෙන් පණිවියක් ලියන්න');
 
-        const officerTels = [
-            db.society.president?.tel,
-            db.society.secretary?.tel,
-            db.society.treasurer?.tel
-        ].filter(t => t);
+        const presidentTel = db.society.president ? db.society.president.tel : null;
+        const secretaryTel = db.society.secretary ? db.society.secretary.tel : null;
+        const treasurerTel = db.society.treasurer ? db.society.treasurer.tel : null;
+
+        const officerTels = [presidentTel, secretaryTel, treasurerTel].filter(t => t);
 
         if (officerTels.length === 0) return alert('නිලධාරීන්ගේ WhatsApp අංක කිසිවක් හමු නොවීය');
 
         const waLink = `https://wa.me/${officerTels[0].replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
         window.open(waLink, '_blank');
-        alert(`${db.society.president?.name || 'නිලධාරී'} සඳහා WhatsApp විවෘත විය.`);
+        const presidentName = db.society.president ? db.society.president.name : 'නිලධාරී';
+        alert(`${presidentName} සඳහා WhatsApp විවෘත විය.`);
     });
 
     // Photo Gallery Logic
-    document.getElementById('upload-gal-btn')?.addEventListener('click', () => {
-        const photoFile = document.getElementById('gal-photo').files[0];
-        const eventName = document.getElementById('gal-event').value;
-        const eventDate = document.getElementById('gal-date').value;
+    const uploadGalBtn = document.getElementById('upload-gal-btn');
+    if (uploadGalBtn) {
+        uploadGalBtn.addEventListener('click', () => {
+            const photoFile = document.getElementById('gal-photo').files[0];
+            const eventName = document.getElementById('gal-event').value;
+            const eventDate = document.getElementById('gal-date').value;
 
-        if (!photoFile || !eventName || !eventDate) return alert('කරුණාකර සියලු විස්තර පුරවන්න');
+            if (!photoFile || !eventName || !eventDate) return alert('කරුණාකර සියලු විස්තර පුරවන්න');
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            db.gallery.push({
-                image: event.target.result,
-                name: eventName,
-                date: eventDate
-            });
-            saveData();
-            renderData();
-        };
-        reader.readAsDataURL(photoFile);
-    });
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                db.gallery.push({
+                    image: event.target.result,
+                    name: eventName,
+                    date: eventDate
+                });
+                saveData();
+                renderData();
+            };
+            reader.readAsDataURL(photoFile);
+        });
+    }
 
     // Finance Logic
-    document.getElementById('add-income-btn')?.addEventListener('click', () => {
-        const source = document.getElementById('inc-source').value;
-        const amountVal = document.getElementById('inc-amount').value;
-        const amount = parseFloat(amountVal);
-        const date = document.getElementById('inc-date').value || new Date().toISOString().split('T')[0];
+    const addIncomeBtn = document.getElementById('add-income-btn');
+    if (addIncomeBtn) {
+        addIncomeBtn.addEventListener('click', () => {
+            const source = document.getElementById('inc-source').value;
+            const amountVal = document.getElementById('inc-amount').value;
+            const amount = parseFloat(amountVal);
+            const date = document.getElementById('inc-date').value || new Date().toISOString().split('T')[0];
 
-        if (isNaN(amount) || amount <= 0) return alert('කරුණාකර වලංගු මුදලක් ඇතුළත් කරන්න');
+            if (isNaN(amount) || amount <= 0) return alert('කරුණාකර වලංගු මුදලක් ඇතුළත් කරන්න');
 
-        db.finance.transactions.unshift({
-            id: Date.now(),
-            type: 'income',
-            category: source,
-            amount: amount,
-            date: date,
-            desc: `ආදායම: ${source}`
+            db.finance.transactions.unshift({
+                id: Date.now(),
+                type: 'income',
+                category: source,
+                amount: amount,
+                date: date,
+                desc: `ආදායම: ${source}`
+            });
+
+            saveData();
+            renderData();
+            document.getElementById('inc-amount').value = '';
+            alert('ආදායම සාර්ථකව සුරැකින ලදී!');
         });
+    }
 
-        saveData();
-        renderData();
-        document.getElementById('inc-amount').value = '';
-        alert('ආදායම සාර්ථකව සුරැකින ලදී!');
-    });
+    const addExpenseBtn = document.getElementById('add-expense-btn');
+    if (addExpenseBtn) {
+        addExpenseBtn.addEventListener('click', () => {
+            const category = document.getElementById('exp-category').value;
+            const amountVal = document.getElementById('exp-amount').value;
+            const amount = parseFloat(amountVal);
+            const date = document.getElementById('exp-date').value || new Date().toISOString().split('T')[0];
 
-    document.getElementById('add-expense-btn')?.addEventListener('click', () => {
-        const category = document.getElementById('exp-category').value;
-        const amountVal = document.getElementById('exp-amount').value;
-        const amount = parseFloat(amountVal);
-        const date = document.getElementById('exp-date').value || new Date().toISOString().split('T')[0];
+            if (isNaN(amount) || amount <= 0) return alert('කරුණාකර වලංගු මුදලක් ඇතුළත් කරන්න');
 
-        if (isNaN(amount) || amount <= 0) return alert('කරුණාකර වලංගු මුදලක් ඇතුළත් කරන්න');
+            db.finance.transactions.unshift({
+                id: Date.now(),
+                type: 'expense',
+                category: category,
+                amount: amount,
+                date: date,
+                desc: `වියදම: ${category}`
+            });
 
-        db.finance.transactions.unshift({
-            id: Date.now(),
-            type: 'expense',
-            category: category,
-            amount: amount,
-            date: date,
-            desc: `වියදම: ${category}`
+            saveData();
+            renderData();
+            document.getElementById('exp-amount').value = '';
+            alert('වියදම සාර්ථකව සුරැකින ලදී!');
         });
-
-        saveData();
-        renderData();
-        document.getElementById('exp-amount').value = '';
-        alert('වියදම සාර්ථකව සුරැකින ලදී!');
-    });
+    }
 
     window.removeTransaction = (id) => {
         if (!confirm('මෙම ගනුදෙනුව ඉවත් කිරීමට අවශ්‍ය බව සහතිකද?')) return;
@@ -430,15 +440,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Init society fields if they exist
         if (db.society) {
-            document.getElementById('soc-pres-name').value = db.society.president?.name || '';
-            document.getElementById('soc-pres-tel').value = db.society.president?.tel || '';
-            document.getElementById('soc-sec-name').value = db.society.secretary?.name || '';
-            document.getElementById('soc-sec-tel').value = db.society.secretary?.tel || '';
-            document.getElementById('soc-tre-name').value = db.society.treasurer?.name || '';
-            document.getElementById('soc-tre-tel').value = db.society.treasurer?.tel || '';
-            document.getElementById('area-input').value = db.society.general?.area || '';
-            document.getElementById('officer-name').value = db.society.general?.officer || '';
-            document.getElementById('owner-name').value = db.society.general?.owner || '';
+            document.getElementById('soc-pres-name').value = (db.society.president && db.society.president.name) || '';
+            document.getElementById('soc-pres-tel').value = (db.society.president && db.society.president.tel) || '';
+            document.getElementById('soc-sec-name').value = (db.society.secretary && db.society.secretary.name) || '';
+            document.getElementById('soc-sec-tel').value = (db.society.secretary && db.society.secretary.tel) || '';
+            document.getElementById('soc-tre-name').value = (db.society.treasurer && db.society.treasurer.name) || '';
+            document.getElementById('soc-tre-tel').value = (db.society.treasurer && db.society.treasurer.tel) || '';
+            document.getElementById('area-input').value = (db.society.general && db.society.general.area) || '';
+            document.getElementById('officer-name').value = (db.society.general && db.society.general.officer) || '';
+            document.getElementById('owner-name').value = (db.society.general && db.society.general.owner) || '';
         }
 
         // Logo
@@ -474,6 +484,24 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             summaryList.insertAdjacentHTML('beforeend', row);
         });
+
+        // Add Grand Total Arrears Row
+        let grandTotalArrears = 0;
+        db.farmers.forEach(f => {
+            const info = calculateArrears(f);
+            grandTotalArrears += info.total;
+        });
+
+        if (db.farmers.length > 0) {
+            const totalRow = `
+                <tr style="background: #f1f8e9; font-weight: bold; border-top: 2px solid var(--primary-color);">
+                    <td colspan="2" style="text-align: right;">මුළු හිඟ මුදල (Grand Total):</td>
+                    <td style="color: #c62828;">Rs. ${grandTotalArrears.toFixed(2)}</td>
+                    <td colspan="2"></td>
+                </tr>
+            `;
+            summaryList.insertAdjacentHTML('beforeend', totalRow);
+        }
 
         // Render Officers Summary on Home Page
         const offSummary = document.getElementById('officers-summary');
@@ -536,6 +564,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('total-income').innerText = `Rs. ${combinedIncome.toFixed(2)}`;
                 document.getElementById('total-expense').innerText = `Rs. ${totalExp.toFixed(2)}`;
                 document.getElementById('current-balance').innerText = `Rs. ${(combinedIncome - totalExp).toFixed(2)}`;
+
+                // Add Table Total Row
+                if (db.finance.transactions.length > 0) {
+                    const row = `
+                        <tr style="background: #f8fcf8; font-weight: bold; border-top: 2px solid #2e7d32;">
+                            <td colspan="3" style="text-align: right;">ගනුදෙනු එකතුව (Transactions Total):</td>
+                            <td style="color: ${totalInc >= totalExp ? '#2e7d32' : '#c62828'};">
+                                Rs. ${(totalInc - totalExp).toFixed(2)}
+                            </td>
+                            <td></td>
+                        </tr>
+                    `;
+                    financeList.insertAdjacentHTML('beforeend', row);
+                }
             }
         }
 
