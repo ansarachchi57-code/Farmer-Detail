@@ -1,4 +1,7 @@
-    // Data Storage with Migration
+document.addEventListener('DOMContentLoaded', () => {
+    // Data Storage Logic
+    const saveData = () => { localStorage.setItem('farmer_db', JSON.stringify(db)); };
+
     let db;
     try {
         const raw = localStorage.getItem('farmer_db');
@@ -7,7 +10,7 @@
         db = {};
     }
 
-    // Initialize defaults to prevent errors
+    // Initialize defaults & Aggressive Migration
     db.farmers = db.farmers || [];
     db.paddy_fields = db.paddy_fields || [];
     db.society = db.society || { president: {}, secretary: {}, treasurer: {}, general: {} };
@@ -17,6 +20,17 @@
     db.finance = db.finance || { transactions: [] };
     if (!db.finance.transactions) db.finance.transactions = [];
     db.logo = db.logo || null;
+    db.title = db.title || "ගොවිසෙත ගොවි කළමනාකරණ පද්ධතිය";
+
+    // Data Quality Correction (Repair any corrupted data types)
+    db.farmers.forEach(f => {
+        if (typeof f.membershipFee !== 'number') f.membershipFee = parseFloat(f.membershipFee) || 120;
+        if (typeof f.paidYears === 'string' && f.paidYears.includes(',')) f.paidYears = f.paidYears.split(',').map(y => y.trim()).filter(y => y);
+        else if (f.paidYears && !Array.isArray(f.paidYears)) f.paidYears = [f.paidYears.toString().trim()];
+        if (!f.paidYears) f.paidYears = [];
+    });
+    db.finance.transactions.forEach(t => { if (typeof t.amount !== 'number') t.amount = parseFloat(t.amount) || 0; });
+    saveData();
 
     // UI Elements
     const sections = document.querySelectorAll('.section');
@@ -411,10 +425,6 @@
     }
 
     // Data Management
-    function saveData() {
-        localStorage.setItem('farmer_db', JSON.stringify(db));
-    }
-
     function renderData() {
         if (db.title) headerTitle.innerText = db.title;
 
@@ -491,12 +501,13 @@
                 financeList.innerHTML = '';
                 let totalInc = 0;
                 let totalExp = 0;
+                let membershipTotal = 0;
 
                 // Sync Membership Income from Farmers
-                let membershipTotal = 0;
                 db.farmers.forEach(f => {
-                    const paidCount = (f.paidYears || []).length;
-                    membershipTotal += paidCount * (f.membershipFee || 120);
+                    const paidCount = Array.isArray(f.paidYears) ? f.paidYears.length : 0;
+                    const fee = parseFloat(f.membershipFee) || 0;
+                    membershipTotal += (paidCount * fee);
                 });
 
                 db.finance.transactions.forEach(t => {
